@@ -210,6 +210,11 @@ export class EtsyApiClient {
         return this.makeRequest(`/application/shops/${shopId}/listings/active`, 'GET', null, accessToken);
     }
 
+    
+    async updateListing(shopId: string, listingId: string, listingData: any, accessToken: string) {
+        return this.makeRequest(`/application/shops/${shopId}/listings/${listingId}`, 'PATCH', listingData, accessToken);
+    }
+
     async createListing(shopId: string, listingData: any, accessToken: string) {
         return this.makeRequest(`/application/shops/${shopId}/listings`, 'POST', listingData, accessToken);
     }
@@ -220,7 +225,7 @@ export class EtsyApiClient {
 
     private getHeaders(accessToken?: string): Record<string, string> {
         const headers: Record<string, string> = {
-            'x-api-key': this.apiKey,
+            'x-api-key': this.clientSecret ? `${this.apiKey}:${this.clientSecret}` : this.apiKey,
             'Content-Type': 'application/json'
         };
 
@@ -280,7 +285,7 @@ export class EtsyApiClient {
 
             // 3. Make the POST request
             const headers: Record<string, string> = {
-                'x-api-key': this.apiKey,
+                'x-api-key': this.clientSecret ? `${this.apiKey}:${this.clientSecret}` : this.apiKey,
                 'Authorization': `Bearer ${accessToken}`,
                 ...formData.getHeaders(),
             };

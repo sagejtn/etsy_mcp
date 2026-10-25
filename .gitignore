@@ -8,7 +8,7 @@ yarn.lock
 
 # TypeScript
 *.tsbuildinfo
-dist/
+# dist/ (committed for npx runner)
 build/
 
 # Environment variables

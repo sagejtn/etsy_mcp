@@ -35,6 +35,22 @@ export class EtsyMCPServer {
     const authenticateSchema = z.object({});
     const getListingsSchema = z.object({ shop_id: z.number() });
     const getShopDetailsSchema = z.object({ shop_id: z.number() });
+    const updateListingSchema = z.object({
+      shop_id: z.number().optional().describe("The ID of the shop. If not provided, uses the default shop."),
+      listing_id: z.number().describe("The ID of the listing to update."),
+      listing_data: z.object({
+        title: z.string().optional(),
+        description: z.string().optional(),
+        price: z.number().optional(),
+        quantity: z.number().optional(),
+        state: z.enum(["active", "inactive", "draft"]).optional(),
+        materials: z.array(z.string()).optional(),
+        tags: z.array(z.string()).optional(),
+        shipping_profile_id: z.number().int().optional(),
+        taxonomy_id: z.number().optional()
+      }).describe("The listing fields to update.")
+    });
+
     const createListingSchema = z.object({
       shop_id: z.number().optional().describe("The ID of the shop. If not provided, uses the default shop."),
       listing_data: z.object({
@@ -247,6 +263,44 @@ export class EtsyMCPServer {
           const shopDetails = await etsyApi.getShopDetails(shopIdToUse.toString(), accessToken);
           return {
             content: [{ type: 'text' as const, text: JSON.stringify(shopDetails, null, 2) }]
+          };
+        } catch (error) {
+          return this.handleError(error);
+        }
+      }
+    );
+
+    // Update Listing Tool (PATCH)
+    this.server.tool(
+      'update_listing',
+      'Updates an existing Etsy listing (PATCH). Allows updating title, description, price, quantity, state, tags, and materials.',
+      updateListingSchema.shape,
+      async (args: z.infer<typeof updateListingSchema>, extra: unknown) => {
+        try {
+          const accessToken = await this.getValidAccessToken();
+          if (!accessToken) {
+            return this.handleError(new Error('Authentication required. Please run the authenticate tool.'));
+          }
+
+          let shopIdToUse = args.shop_id;
+          if (!shopIdToUse) {
+            const storedTokens = this.tokenStorage.getTokens();
+            if (storedTokens?.shop_id) {
+              shopIdToUse = storedTokens.shop_id;
+              logger.log(`Using default shop ID: ${shopIdToUse} for update_listing`);
+            } else {
+              return this.handleError(new Error('Shop ID is required. Provide a shop_id or run `set_default_shop` first.'));
+            }
+          }
+
+          const updated = await etsyApi.updateListing(
+            shopIdToUse.toString(),
+            args.listing_id.toString(),
+            args.listing_data,
+            accessToken
+          );
+          return {
+            content: [{ type: 'text' as const, text: JSON.stringify(updated, null, 2) }]
           };
         } catch (error) {
           return this.handleError(error);

@@ -1,5 +1,5 @@
 {
-  "name": "etsy-mcp",
+  "name": "etsy_mcp",
   "version": "1.0.0",
   "type": "module",
   "main": "dist/mcp.js",
@@ -11,7 +11,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "start": "npm run build && node dist/mcp.js",
+    "start": "node dist/bundle.cjs",
     "dev": "tsx watch src/mcp.ts",
     "test": "jest"
   },
@@ -20,7 +20,7 @@
   "license": "ISC",
   "description": "MCP server for Etsy API integration",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.8.0",
+    "@modelcontextprotocol/sdk": "1.8.0",
     "@types/express": "5.0.1",
     "@types/open": "^6.1.0",
     "axios": "^1.6.7",
@@ -47,5 +47,12 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "bin": {
+    "etsy_mcp": "./dist/bundle.cjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sagejtn/etsy_mcp.git"
   }
 }
