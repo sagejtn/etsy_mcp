@@ -326,13 +326,15 @@ export class EtsyMCPServer {
             offerings: [{
               price: opt.price,
               quantity: opt.quantity || 10,
-              is_enabled: true
+              is_enabled: true,
+              readiness_state_id: opt.readiness_state_id || 1406403652143
             }]
           }));
 
           const payload = {
             products,
-            price_on_property: [propertyId]
+            price_on_property: [propertyId],
+            sku_on_property: [propertyId]
           };
 
           const result = await etsyApi.updateListingInventory(args.listing_id.toString(), payload, accessToken);
