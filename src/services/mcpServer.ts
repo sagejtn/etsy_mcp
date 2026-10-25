@@ -35,6 +35,21 @@ export class EtsyMCPServer {
     const authenticateSchema = z.object({});
     const getListingsSchema = z.object({ shop_id: z.number() });
     const getShopDetailsSchema = z.object({ shop_id: z.number() });
+    const getListingInventorySchema = z.object({
+      listing_id: z.number().describe("The ID of the listing.")
+    });
+
+    const setListingVariationsSchema = z.object({
+      listing_id: z.number().describe("The ID of the listing."),
+      property_name: z.string().default("Set Size").describe("Name of the variation, e.g. 'Set Size' or 'Option'"),
+      options: z.array(z.object({
+        name: z.string().describe("Option name, e.g. 'Full Set (105 Tokens)'"),
+        price: z.number().describe("Price in USD, e.g. 36.00"),
+        quantity: z.number().int().default(10),
+        sku: z.string().optional()
+      })).describe("List of tiered variation options with prices and quantities")
+    });
+
     const updateListingSchema = z.object({
       shop_id: z.number().optional().describe("The ID of the shop. If not provided, uses the default shop."),
       listing_id: z.number().describe("The ID of the listing to update."),
@@ -264,6 +279,64 @@ export class EtsyMCPServer {
           return {
             content: [{ type: 'text' as const, text: JSON.stringify(shopDetails, null, 2) }]
           };
+        } catch (error) {
+          return this.handleError(error);
+        }
+      }
+    );
+
+    // Get Listing Inventory Tool
+    this.server.tool(
+      'get_listing_inventory',
+      'Retrieves the inventory, products, price offerings, and variation sets for a listing.',
+      getListingInventorySchema.shape,
+      async (args: z.infer<typeof getListingInventorySchema>, extra: unknown) => {
+        try {
+          const accessToken = await this.getValidAccessToken();
+          if (!accessToken) return this.handleError(new Error('Authentication required.'));
+          const inventory = await etsyApi.getListingInventory(args.listing_id.toString(), accessToken);
+          return { content: [{ type: 'text' as const, text: JSON.stringify(inventory, null, 2) }] };
+        } catch (error) {
+          return this.handleError(error);
+        }
+      }
+    );
+
+    // Set Listing Variations / Sets Tool
+    this.server.tool(
+      'set_listing_variations',
+      'Configures multi-tier set sizes and pricing variations on a listing (e.g. Full Set vs Half Set vs Single Resource packs).',
+      setListingVariationsSchema.shape,
+      async (args: z.infer<typeof setListingVariationsSchema>, extra: unknown) => {
+        try {
+          const accessToken = await this.getValidAccessToken();
+          if (!accessToken) return this.handleError(new Error('Authentication required.'));
+
+          const propertyName = args.property_name || 'Set Size';
+          // Property ID 513 is Etsy standard custom attribute for variations
+          const propertyId = 513;
+
+          const products = args.options.map(opt => ({
+            sku: opt.sku || '',
+            property_values: [{
+              property_id: propertyId,
+              property_name: propertyName,
+              values: [opt.name]
+            }],
+            offerings: [{
+              price: opt.price,
+              quantity: opt.quantity || 10,
+              is_enabled: true
+            }]
+          }));
+
+          const payload = {
+            products,
+            price_on_property: [propertyId]
+          };
+
+          const result = await etsyApi.updateListingInventory(args.listing_id.toString(), payload, accessToken);
+          return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
         } catch (error) {
           return this.handleError(error);
         }

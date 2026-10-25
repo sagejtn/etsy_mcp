@@ -211,6 +211,14 @@ export class EtsyApiClient {
     }
 
     
+    async getListingInventory(listingId: string, accessToken: string) {
+        return this.makeRequest(`/application/listings/${listingId}/inventory`, 'GET', null, accessToken);
+    }
+
+    async updateListingInventory(listingId: string, inventoryData: any, accessToken: string) {
+        return this.makeRequest(`/application/listings/${listingId}/inventory`, 'PUT', inventoryData, accessToken);
+    }
+
     async updateListing(shopId: string, listingId: string, listingData: any, accessToken: string) {
         return this.makeRequest(`/application/shops/${shopId}/listings/${listingId}`, 'PATCH', listingData, accessToken);
     }
